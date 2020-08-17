@@ -28,7 +28,7 @@ exports.cryptoHourly = functions.pubsub
         post: `Hourly crypto prices:\n\n${keys
           .map((coin) => `${coin}: $${parseFloat(data[coin].usd).toFixed(2)}`)
           .join("\n")}`,
-        platforms: ["twitter"],
+        platforms: ["twitter", "facebook", "linkedin", "telegram"],
       },
       responseType: "json",
     });
