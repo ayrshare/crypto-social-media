@@ -22,3 +22,7 @@ You can see the live Twitter example at [@CryptoSocialM](https://twitter.com/Cry
 3. Register with [Ayrshare](https://www.ayrshare.com), enable your social media accounts, and get your API key.
 4. In index.js set **AYRSHARE_API_KEY** to your key (or set the Firebase [env variable](https://firebase.google.com/docs/functions/config-env)).
 5. Run locally to test and deploy to a production environment such as Firebase.
+
+## Enhancement
+
+Firebase Cloud Functions will unload out of memory and reload at certain points. We are saving the previous prices in a simple global variable, so when the a reload occurs, we lose the data. An enhancement would be to store the previous value in a Firestore.

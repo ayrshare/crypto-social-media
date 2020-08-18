@@ -2,17 +2,70 @@ const functions = require("firebase-functions");
 const CoinGecko = require("coingecko-api");
 const got = require("got");
 
+const AYRSHARE_API_KEY = functions.config().ayrshare.key;
+
 const CoinGeckoClient = new CoinGecko();
 
 const CRONTAB_HOURLY = "0 * * * *";
 const TIME_ZONE = "America/New_York";
-const AYRSHARE_API_KEY = functions.config().ayrshare.key;
+
+const PLATFORMS = ["twitter", "facebook", "linkedin", "telegram"];
+
+const coinMapping = new Map([
+  ["bitcoin", "BTC"],
+  ["ethereum", "ETH"],
+  ["litecoin", "LTC"],
+]);
 
 let previous;
 
+const publishMovement = (coin, percent, diff) => {
+  const keys = Object.keys(data);
+  const json = {
+    post: `${coinMapping.get(coin)} (${coin}) is moving. ${
+      diff > 0 ? "Up" : "Down"
+    } ${percent}% in the past hour.`,
+    platforms: PLATFORMS,
+  };
+
+  return publish(json);
+};
+
+const publishPrices = (data) => {
+  const keys = Object.keys(data);
+  const json = {
+    post: `Hourly crypto prices:\n\n${keys
+      .map(
+        (coin) =>
+          `${coinMapping.get(coin)}: $${formatNumber(
+            data[coin].usd
+          )} (${coin}) ${data[coin].diff}`
+      )
+      .join("\n")}\n\n${keys.map((coin) => `#${coin}`).join(" ")}`,
+    platforms: PLATFORMS,
+  };
+
+  return publish(json);
+};
+
+const publish = (json) => {
+  console.log(JSON.stringify(json, null, 2));
+  // Post to Ayrshare
+  return got
+    .post("https://app.ayrshare.com/api/post", {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${AYRSHARE_API_KEY}`,
+      },
+      json,
+      responseType: "json",
+    })
+    .catch(console.error);
+};
+
 /**
  *	Get the price change percentage
- */ 
+ */
 const getChange = (data) => {
   // Deep Copy
   const prices = JSON.parse(JSON.stringify(data));
@@ -28,9 +81,15 @@ const getChange = (data) => {
   keys.forEach((coin) => {
     const previousVal = previous[coin].usd;
     const diff = prices[coin].usd - previousVal;
-    const percent = parseFloat(Math.abs((diff / previousVal) * 100)).toFixed(2);
+    const percent = Math.abs((diff / previousVal) * 100);
 
-    prices[coin].diff = `${diff >= 0 ? "⬆️" : "⬇️"}${percent}%`;
+    if (percent >= 1) {
+      publishMovement(coin, percent, diff);
+    }
+
+    const formattedPercent = parseFloat(percent).toFixed(2);
+    prices[coin].diff =
+      percent === 0 ? "" : `${diff >= 0 ? "🟢+" : "🔴-"}${formattedPercent}%`;
   });
 
   previous = prices;
@@ -43,38 +102,18 @@ const formatNumber = (num) =>
     .toFixed(2)
     .replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
 
-const publish = (data) => {
-  const keys = Object.keys(data);
-  const json = {
-    post: `Hourly crypto prices:\n\n${keys
-      .map(
-        (coin) => `${coin}: $${formatNumber(data[coin].usd)}  ${data[coin].diff}`
-      )
-      .join("\n")}`,
-    platforms: ["twitter", "facebook", "linkedin", "telegram"],
-  };
-
-  // Post to Ayrshare
-  return got.post("https://app.ayrshare.com/api/post", {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${AYRSHARE_API_KEY}`,
-    },
-    json,
-    responseType: "json",
-  });
-};
-
 const runHourly = async () => {
-  const crypto = await CoinGeckoClient.simple.price({
-    ids: ["bitcoin", "ethereum", "litecoin"],
-    vs_currencies: ["usd"],
-  });
+  const crypto = await CoinGeckoClient.simple
+    .price({
+      ids: Array.from(coinMapping.keys()),
+      vs_currencies: ["usd"],
+    })
+    .catch(console.error);
 
   const { data } = crypto;
   const processedData = getChange(data);
 
-  return publish(processedData);
+  return publishPrices(processedData);
 };
 
 exports.cryptoHourly = functions.pubsub
