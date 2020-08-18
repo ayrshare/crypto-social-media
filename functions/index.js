@@ -17,8 +17,9 @@ const coinMapping = new Map([
   ["litecoin", "LTC"],
 ]);
 
-let previous;
+let previous;	// Previous prices
 
+/** Publish if large price movement */
 const publishMovement = (coin, percent, diff) => {
   const keys = Object.keys(data);
   const json = {
@@ -31,8 +32,15 @@ const publishMovement = (coin, percent, diff) => {
   return publish(json);
 };
 
+/** Publish the Crypto prices */
 const publishPrices = (data) => {
   const keys = Object.keys(data);
+
+  const formatNumber = (num) =>
+    parseFloat(num)
+      .toFixed(2)
+      .replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
+
   const json = {
     post: `Hourly crypto prices:\n\n${keys
       .map(
@@ -48,6 +56,7 @@ const publishPrices = (data) => {
   return publish(json);
 };
 
+/** Publish to Ayrshare */
 const publish = (json) => {
   console.log(JSON.stringify(json, null, 2));
   // Post to Ayrshare
@@ -63,9 +72,7 @@ const publish = (json) => {
     .catch(console.error);
 };
 
-/**
- *	Get the price change percentage
- */
+/** Get the price change percentage */
 const getChange = (data) => {
   // Deep Copy
   const prices = JSON.parse(JSON.stringify(data));
@@ -97,11 +104,7 @@ const getChange = (data) => {
   return previous;
 };
 
-const formatNumber = (num) =>
-  parseFloat(num)
-    .toFixed(2)
-    .replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
-
+/** Run every hour */
 const runHourly = async () => {
   const crypto = await CoinGeckoClient.simple
     .price({
