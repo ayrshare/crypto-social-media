@@ -4,6 +4,8 @@ Crypto Social Media publishes hourly to popular Cryptocurrency prices to social 
 
 The system uses Coin Gecko to obtain the latest prices, determines the percent change since last post, formats the data, and publishes to social media networks using Ayrshare. Everything runs on Firebase using the cloud function scheduler.
 
+You can see the live Twitter example at [@CryptoSocialM](https://twitter.com/CryptoSocialM)
+
 ## Dependencies
 
 - [Ayrshare](https://www.ayrshare.com) - API to publish to all social networks with one call
