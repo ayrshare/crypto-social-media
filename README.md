@@ -26,3 +26,7 @@ You can see the live Twitter example at [@CryptoSocialM](https://twitter.com/Cry
 ## Enhancement
 
 Firebase Cloud Functions will unload out of memory and reload at certain points. We are saving the previous prices in a simple global variable, so when the a reload occurs, we lose the data. An enhancement would be to store the previous value in Firestore.
+
+## More Info
+
+[Article on Using Crypto Social Media](https://www.ayrshare.com/automatically-publish-cryptocurrency-prices-social-media-networks/)

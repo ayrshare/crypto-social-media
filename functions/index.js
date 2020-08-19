@@ -23,8 +23,8 @@ let previous;	// Previous prices
 const publishMovement = (coin, percent, diff) => {
   const json = {
     post: `${coinMapping.get(coin)} (${coin}) is moving. ${
-      diff > 0 ? "Up" : "Down"
-    } ${percent}% in the past hour.`,
+      diff > 0 ? "Up 🟢+" : "Down 🔴-"
+    } ${parseFloat(percent).toFixed(2)}% in the past hour.`,
     platforms: PLATFORMS,
   };
 
@@ -76,6 +76,7 @@ const getChange = (data) => {
 
   const keys = Object.keys(prices);
   if (!previous) {
+	console.log('Previous not present');
     keys.forEach((coin) => (prices[coin].diff = ""));
     previous = prices;
 
