@@ -21,7 +21,6 @@ let previous;	// Previous prices
 
 /** Publish if large price movement */
 const publishMovement = (coin, percent, diff) => {
-  const keys = Object.keys(data);
   const json = {
     post: `${coinMapping.get(coin)} (${coin}) is moving. ${
       diff > 0 ? "Up" : "Down"
@@ -58,8 +57,6 @@ const publishPrices = (data) => {
 
 /** Publish to Ayrshare */
 const publish = (json) => {
-  console.log(JSON.stringify(json, null, 2));
-  // Post to Ayrshare
   return got
     .post("https://app.ayrshare.com/api/post", {
       headers: {
