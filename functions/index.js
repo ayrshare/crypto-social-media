@@ -3,28 +3,39 @@ const CoinGecko = require("coingecko-api");
 const got = require("got");
 
 const AYRSHARE_API_KEY = functions.config().ayrshare.key;
-
 const CoinGeckoClient = new CoinGecko();
 
 const CRONTAB_HOURLY = "0 * * * *";
+const CRONTAB_HALF_PAST = "30 * * * *";
 const TIME_ZONE = "America/New_York";
 
 const PLATFORMS = ["twitter", "facebook", "linkedin", "telegram"];
 
-const coinMapping = new Map([
-  ["bitcoin", "BTC"],
-  ["ethereum", "ETH"],
-  ["litecoin", "LTC"],
+const coinStdMapping = new Map([
+  ["bitcoin", { ticker: "BTC", name: "Bitcoin" }],
+  ["ethereum", { ticker: "ETH", name: "Ethereum" }],
+  ["litecoin", { ticker: "LTC", name: "Litecoin" }],
 ]);
 
-let previous;	// Previous prices
+const coinDefiMapping = new Map([
+  ["maker", { ticker: "MKR", name: "Maker" }],
+  ["ethlend", { ticker: "LEND", name: "Aave" }],
+  ["curve-dao-token", { ticker: "CRV", name: "Curve Finance" }],
+]);
+
+const madeWith = "\nmade with @AyrShare";
+
+let previousStd; // Previous standard prices
+let previousDefi; // Previous unique prices
 
 /** Publish if large price movement */
-const publishMovement = (coin, percent, diff) => {
+const publishMovement = (coinMapping, coin, percent, diff) => {
   const json = {
-    post: `${coinMapping.get(coin)} (${coin}) is moving. ${
-      diff > 0 ? "Up 🟢+" : "Down 🔴-"
-    } ${parseFloat(percent).toFixed(2)}% in the past hour.`,
+    post: `${coinMapping.get(coin).ticker} (${
+      coinMapping.get(coin).name
+    }) is moving. ${diff > 0 ? "Up 🟢 +" : "Down 🔴 -"} ${parseFloat(
+      percent
+    ).toFixed(2)}% in the past hour.\n${madeWith}`,
     platforms: PLATFORMS,
   };
 
@@ -32,7 +43,7 @@ const publishMovement = (coin, percent, diff) => {
 };
 
 /** Publish the Crypto prices */
-const publishPrices = (data) => {
+const publishPrices = (coinMapping, hashtag, data) => {
   const keys = Object.keys(data);
 
   const formatNumber = (num) =>
@@ -44,11 +55,13 @@ const publishPrices = (data) => {
     post: `Hourly crypto prices:\n\n${keys
       .map(
         (coin) =>
-          `${coinMapping.get(coin)}: $${formatNumber(
-            data[coin].usd
-          )} (${coin}) ${data[coin].diff}`
+          `${coinMapping.get(coin).ticker}: $${formatNumber(data[coin].usd)} (${
+            coinMapping.get(coin).name
+          }) ${data[coin].diff}`
       )
-      .join("\n")}\n\n${keys.map((coin) => `#${coin}`).join(" ")}`,
+      .join("\n")}\n\n${keys
+      .map((coin) => `#${coinMapping.get(coin).name.replace(/\s/g, "")}`)
+      .join(" ")}${hashtag}${madeWith}`,
     platforms: PLATFORMS,
   };
 
@@ -70,13 +83,13 @@ const publish = (json) => {
 };
 
 /** Get the price change percentage */
-const getChange = (data) => {
+const getChange = (coinMapping, previous, data) => {
   // Deep Copy
   const prices = JSON.parse(JSON.stringify(data));
 
   const keys = Object.keys(prices);
   if (!previous) {
-	console.log('Previous not present');
+    console.log("Previous not present");
     keys.forEach((coin) => (prices[coin].diff = ""));
     previous = prices;
 
@@ -89,12 +102,12 @@ const getChange = (data) => {
     const percent = Math.abs((diff / previousVal) * 100);
 
     if (percent >= 1) {
-      publishMovement(coin, percent, diff);
+      publishMovement(coinMapping, coin, percent, diff);
     }
 
     const formattedPercent = parseFloat(percent).toFixed(2);
     prices[coin].diff =
-      percent === 0 ? "" : `${diff >= 0 ? "🟢+" : "🔴-"}${formattedPercent}%`;
+      percent === 0 ? "" : `${diff >= 0 ? "🟢 +" : "🔴 -"}${formattedPercent}%`;
   });
 
   previous = prices;
@@ -103,7 +116,7 @@ const getChange = (data) => {
 };
 
 /** Run every hour */
-const runHourly = async () => {
+const run = async (coinMapping, hashtag, previous) => {
   const crypto = await CoinGeckoClient.simple
     .price({
       ids: Array.from(coinMapping.keys()),
@@ -112,14 +125,28 @@ const runHourly = async () => {
     .catch(console.error);
 
   const { data } = crypto;
-  const processedData = getChange(data);
+  const processedData = getChange(coinMapping, previous, data);
 
-  return publishPrices(processedData);
+  return publishPrices(coinMapping, hashtag, processedData);
 };
 
 exports.cryptoHourly = functions.pubsub
   .schedule(CRONTAB_HOURLY)
   .timeZone(TIME_ZONE)
   .onRun((context) => {
-    return runHourly();
+    run(coinStdMapping, "", previousStd);
   });
+
+exports.cryptoHalfPast = functions.pubsub
+  .schedule(CRONTAB_HALF_PAST)
+  .timeZone(TIME_ZONE)
+  .onRun((context) => {
+    return run(coinDefiMapping, " #DeFi", previousDefi);
+  });
+
+/*
+  exports.test = functions.https.onRequest(async (req, res) => {
+	run(coinDefiMapping, " #DeFi", previousDefi);
+	return res.send("ok");
+  });
+  */

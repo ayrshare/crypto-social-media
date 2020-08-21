@@ -1,6 +1,6 @@
 # crypto-social-media
 
-Crypto Social Media publishes hourly to popular Cryptocurrency prices to social networks such as Twitter, Facebook, LinkedIn, Telegram, and Reddit. You can use this example to setup any event or dynamic publishing from your server.
+Crypto Social Media publishes hourly to popular Cryptocurrency and DeFi (Decentralized Finance) prices to social networks such as Twitter, Facebook, LinkedIn, Telegram, and Reddit. You can use this example to setup any event or dynamic content publishing from your backend server.
 
 The system uses Coin Gecko to obtain the latest prices, determines the percent change since last post, formats the data, and publishes to social media networks using Ayrshare. Everything runs on Firebase using the cloud function scheduler.
 
