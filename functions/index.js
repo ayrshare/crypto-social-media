@@ -26,9 +26,23 @@ const coinDefiMapping = new Map([
 const madeWith = "\nmade with @AyrShare";
 
 let previousStd; // Previous standard prices
-let previousDefi; // Previous unique prices
+let previousDefi; // Previous DeFi prices
 
-/** Publish if large price movement */
+/** Publish to Ayrshare */
+const publish = (json) => {
+  return got
+    .post("https://app.ayrshare.com/api/post", {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${AYRSHARE_API_KEY}`,
+      },
+      json,
+      responseType: "json",
+    })
+    .catch(console.error);
+};
+
+/** Publish if large (greater than 1%) price movement */
 const publishMovement = (coinMapping, coin, percent, diff) => {
   const json = {
     post: `${coinMapping.get(coin).ticker} (${
@@ -41,6 +55,7 @@ const publishMovement = (coinMapping, coin, percent, diff) => {
 
   return publish(json);
 };
+// ---------------------------------------------------
 
 /** Publish the Crypto prices */
 const publishPrices = (coinMapping, hashtag, data) => {
@@ -67,20 +82,7 @@ const publishPrices = (coinMapping, hashtag, data) => {
 
   return publish(json);
 };
-
-/** Publish to Ayrshare */
-const publish = (json) => {
-  return got
-    .post("https://app.ayrshare.com/api/post", {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${AYRSHARE_API_KEY}`,
-      },
-      json,
-      responseType: "json",
-    })
-    .catch(console.error);
-};
+// ---------------------------------------------------
 
 /** Get the price change percentage */
 const getChange = (coinMapping, previous, data) => {
@@ -114,8 +116,9 @@ const getChange = (coinMapping, previous, data) => {
 
   return previous;
 };
+// ---------------------------------------------------
 
-/** Run every hour */
+/** Run every hour or half hour */
 const run = async (coinMapping, hashtag, previous) => {
   const crypto = await CoinGeckoClient.simple
     .price({
@@ -129,6 +132,9 @@ const run = async (coinMapping, hashtag, previous) => {
 
   return publishPrices(coinMapping, hashtag, processedData);
 };
+// ---------------------------------------------------
+
+/** Cloud Functions */
 
 exports.cryptoHourly = functions.pubsub
   .schedule(CRONTAB_HOURLY)
@@ -149,4 +155,4 @@ exports.cryptoHalfPast = functions.pubsub
 	run(coinDefiMapping, " #DeFi", previousDefi);
 	return res.send("ok");
   });
-  */
+*/
