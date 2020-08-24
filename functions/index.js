@@ -43,15 +43,16 @@ const publish = (json) => {
     })
     .catch(console.error);
 };
+// ---------------------------------------------------
 
 /** Publish if large (greater than 1%) price movement */
 const publishMovement = (coinMapping, coin, percent, diff) => {
   const json = {
-    post: `${coinMapping.get(coin).ticker} (${
-      coinMapping.get(coin).name
-    }) is moving. ${diff > 0 ? "Up 🟢 +" : "Down 🔴 -"} ${parseFloat(
-      percent
-    ).toFixed(2)}% in the past hour.\n${madeWith}`,
+    post: `${coinMapping.get(coin).ticker} (#${coinMapping
+      .get(coin)
+      .name.replace(/\s/g, "")}) is moving. ${
+      diff > 0 ? "Up 🟢 +" : "Down 🔴 -"
+    } ${parseFloat(percent).toFixed(2)}% in the past hour.\n${madeWith}`,
     platforms: PLATFORMS,
   };
 
