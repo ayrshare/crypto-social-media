@@ -1,8 +1,13 @@
 const functions = require("firebase-functions");
 const CoinGecko = require("coingecko-api");
 const got = require("got");
+const admin = require("firebase-admin");
+admin.initializeApp();
+
+const db = admin.firestore();
 
 const AYRSHARE_API_KEY = functions.config().ayrshare.key;
+
 const CoinGeckoClient = new CoinGecko();
 
 const CRONTAB_HOURLY = "0 * * * *";
@@ -24,9 +29,6 @@ const coinDefiMapping = new Map([
 ]);
 
 const madeWith = "\nmade with @AyrShare";
-
-let previousStd; // Previous standard prices
-let previousDefi; // Previous DeFi prices
 
 /** Publish to Ayrshare */
 const publish = (json) => {
@@ -84,8 +86,47 @@ const publishPrices = (coinMapping, hashtag, data) => {
 };
 // ---------------------------------------------------
 
+/** Manage previous in Firestore */
+const getPrevious = (type) => {
+  return db
+    .collection("previous")
+    .doc(type)
+    .get()
+    .then((snapShot) => {
+      if (snapShot.exists) {
+        return snapShot.data();
+      } else {
+        return undefined;
+      }
+    })
+    .catch(console.error);
+};
+
+const setPrevious = (type, data) =>
+  db.collection("previous").doc(type).set(data).catch(console.error);
+// ---------------------------------------------------
+
 /** Get the price change percentage */
-const getChange = (coinMapping, previous, data) => {
+const getChange = async (coinMapping, type) => {
+  // Get Coin Prices
+  const cryptoPromise = CoinGeckoClient.simple
+    .price({
+      ids: Array.from(coinMapping.keys()),
+      vs_currencies: ["usd"],
+    })
+    .catch(console.error);
+
+  // Get from Firestore the previous prices
+  const previousPromise = getPrevious(type);
+
+  // Resolve promises
+  const [crypto, previous] = await Promise.all([
+    cryptoPromise,
+    previousPromise,
+  ]);
+
+  const { data } = crypto;
+
   // Deep Copy
   const prices = JSON.parse(JSON.stringify(data));
 
@@ -93,42 +134,33 @@ const getChange = (coinMapping, previous, data) => {
   if (!previous) {
     console.log("Previous not present");
     keys.forEach((coin) => (prices[coin].diff = ""));
-    previous = prices;
+  } else {
+    keys.forEach((coin) => {
+      const previousVal = previous[coin].usd;
+      const diff = prices[coin].usd - previousVal;
+      const percent = Math.abs((diff / previousVal) * 100);
 
-    return previous;
+      if (percent >= 1) {
+        publishMovement(coinMapping, coin, percent, diff);
+      }
+
+      const formattedPercent = parseFloat(percent).toFixed(2);
+      prices[coin].diff =
+        percent === 0
+          ? ""
+          : `${diff >= 0 ? "🟢 +" : "🔴 -"}${formattedPercent}%`;
+    });
   }
 
-  keys.forEach((coin) => {
-    const previousVal = previous[coin].usd;
-    const diff = prices[coin].usd - previousVal;
-    const percent = Math.abs((diff / previousVal) * 100);
+  setPrevious(type, prices);
 
-    if (percent >= 1) {
-      publishMovement(coinMapping, coin, percent, diff);
-    }
-
-    const formattedPercent = parseFloat(percent).toFixed(2);
-    prices[coin].diff =
-      percent === 0 ? "" : `${diff >= 0 ? "🟢 +" : "🔴 -"}${formattedPercent}%`;
-  });
-
-  previous = prices;
-
-  return previous;
+  return prices;
 };
 // ---------------------------------------------------
 
 /** Run every hour or half hour */
-const run = async (coinMapping, hashtag, previous) => {
-  const crypto = await CoinGeckoClient.simple
-    .price({
-      ids: Array.from(coinMapping.keys()),
-      vs_currencies: ["usd"],
-    })
-    .catch(console.error);
-
-  const { data } = crypto;
-  const processedData = getChange(coinMapping, previous, data);
+const run = async (coinMapping, hashtag, type) => {
+  const processedData = await getChange(coinMapping, type);
 
   return publishPrices(coinMapping, hashtag, processedData);
 };
@@ -140,14 +172,16 @@ exports.cryptoHourly = functions.pubsub
   .schedule(CRONTAB_HOURLY)
   .timeZone(TIME_ZONE)
   .onRun((context) => {
-    run(coinStdMapping, "", previousStd);
+    const type = "previousStd";
+    return run(coinStdMapping, "", type, type);
   });
 
 exports.cryptoHalfPast = functions.pubsub
   .schedule(CRONTAB_HALF_PAST)
   .timeZone(TIME_ZONE)
   .onRun((context) => {
-    return run(coinDefiMapping, " #DeFi", previousDefi);
+    const type = "previousDefi";
+    return run(coinDefiMapping, " #DeFi", type);
   });
 
 /*

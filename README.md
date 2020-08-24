@@ -13,7 +13,7 @@ You can see the live Twitter example at [@CryptoSocialM](https://twitter.com/Cry
 
 ## Optional
 
-- [Firebase](https://www.firebase.com) - serverless cloud function and hourly cron job. You can use any of system such as Digital Ocean or Netlify.
+- [Firebase](https://www.firebase.com) - serverless cloud function and hourly cron job with Firestore for tracking previous prices. You can use any of system such as Digital Ocean or Netlify with a NoSQL database like MongoDB.
 
 ## Set Up
 
