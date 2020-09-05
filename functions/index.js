@@ -1,12 +1,13 @@
 const functions = require("firebase-functions");
 const CoinGecko = require("coingecko-api");
-const got = require("got");
 const admin = require("firebase-admin");
 admin.initializeApp();
 
-const db = admin.firestore();
-
+const SocialPost = require("social-post-api");
 const AYRSHARE_API_KEY = functions.config().ayrshare.key;
+const social = new SocialPost(AYRSHARE_API_KEY);
+
+const db = admin.firestore();
 
 const CoinGeckoClient = new CoinGecko();
 
@@ -14,7 +15,8 @@ const CRONTAB_HOURLY = "0 * * * *";
 const CRONTAB_HALF_PAST = "30 * * * *";
 const TIME_ZONE = "America/New_York";
 
-const PLATFORMS = ["twitter", "facebook", "linkedin", "telegram"];
+// const PLATFORMS = ["twitter", "facebook", "linkedin", "telegram"];
+const PLATFORMS = ["twitter"];
 
 const coinStdMapping = new Map([
   ["bitcoin", { ticker: "BTC", name: "Bitcoin" }],
@@ -32,16 +34,7 @@ const madeWith = "\nmade with @AyrShare";
 
 /** Publish to Ayrshare */
 const publish = (json) => {
-  return got
-    .post("https://app.ayrshare.com/api/post", {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${AYRSHARE_API_KEY}`,
-      },
-      json,
-      responseType: "json",
-    })
-    .catch(console.error);
+  return social.post(json).catch(console.err);
 };
 // ---------------------------------------------------
 
@@ -185,9 +178,9 @@ exports.cryptoHalfPast = functions.pubsub
     return run(coinDefiMapping, " #DeFi", type);
   });
 
-/*
+
   exports.test = functions.https.onRequest(async (req, res) => {
-	run(coinDefiMapping, " #DeFi", previousDefi);
+	run(coinDefiMapping, " #DeFi", "previousDefi");
 	return res.send("ok");
   });
-*/
+
