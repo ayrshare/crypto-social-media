@@ -1,9 +1,9 @@
 const functions = require("firebase-functions");
 const CoinGecko = require("coingecko-api");
 const admin = require("firebase-admin");
-admin.initializeApp();
-
 const SocialPost = require("social-post-api");
+
+admin.initializeApp();
 const AYRSHARE_API_KEY = functions.config().ayrshare.key;
 const social = new SocialPost(AYRSHARE_API_KEY);
 
@@ -33,8 +33,11 @@ const coinDefiMapping = new Map([
 const madeWith = "\nmade with @AyrShare";
 
 /** Publish to Ayrshare */
-const publish = (json) => {
-  return social.post(json).catch(console.err);
+const publish = async (json) => {
+  const result = await social.post(json).catch(console.error);
+  console.log("Result:", result);
+
+  return result;
 };
 // ---------------------------------------------------
 
@@ -75,6 +78,8 @@ const publishPrices = (coinMapping, hashtag, data) => {
       .join(" ")}${hashtag}${madeWith}`,
     platforms: PLATFORMS,
   };
+
+  console.log("JSON Publish:", json);
 
   return publish(json);
 };
@@ -178,9 +183,8 @@ exports.cryptoHalfPast = functions.pubsub
     return run(coinDefiMapping, " #DeFi", type);
   });
 
+exports.test = functions.https.onRequest(async (req, res) => {
+  run(coinDefiMapping, " #DeFi", "previousDefi");
 
-  exports.test = functions.https.onRequest(async (req, res) => {
-	run(coinDefiMapping, " #DeFi", "previousDefi");
-	return res.send("ok");
-  });
-
+  return res.send("ok");
+});
