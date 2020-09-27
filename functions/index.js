@@ -30,7 +30,7 @@ const coinDefiMapping = new Map([
   ["curve-dao-token", { ticker: "CRV", name: "Curve Finance" }],
 ]);
 
-const madeWith = "\nmade with @AyrShare";
+const madeWith = "";
 
 /** Publish to Ayrshare */
 const publish = async (json) => {
