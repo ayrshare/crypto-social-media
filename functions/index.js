@@ -44,11 +44,11 @@ const publish = async (json) => {
 /** Publish if large (greater than 1%) price movement */
 const publishMovement = (coinMapping, coin, percent, diff) => {
   const json = {
-    post: `${coinMapping.get(coin).ticker} (#${coinMapping
+    post: `$${coinMapping.get(coin).ticker} (#${coinMapping
       .get(coin)
       .name.replace(/\s/g, "")}) is moving. ${
       diff > 0 ? "Up 🟢 +" : "Down 🔴 -"
-    } ${parseFloat(percent).toFixed(2)}% in the past hour.\n${madeWith}`,
+    } ${parseFloat(percent).toFixed(2)}% in the past hour.`,
     platforms: PLATFORMS,
   };
 
@@ -69,13 +69,13 @@ const publishPrices = (coinMapping, hashtag, data) => {
     post: `Hourly crypto prices:\n\n${keys
       .map(
         (coin) =>
-          `${coinMapping.get(coin).ticker}: $${formatNumber(data[coin].usd)} (${
+          `$${coinMapping.get(coin).ticker}: $${formatNumber(data[coin].usd)} (${
             coinMapping.get(coin).name
           }) ${data[coin].diff}`
       )
       .join("\n")}\n\n${keys
       .map((coin) => `#${coinMapping.get(coin).name.replace(/\s/g, "")}`)
-      .join(" ")}${hashtag}${madeWith}`,
+      .join(" ")}`,
     platforms: PLATFORMS,
   };
 
