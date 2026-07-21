@@ -17,7 +17,7 @@
     "coingecko-api": "^1.0.10",
     "firebase-admin": "^13.10.0",
     "firebase-functions": "^7.2.5",
-    "protobufjs": "7.6.3",
+    "protobufjs": "7.6.5",
     "social-post-api": "^1.0.11"
   },
   "devDependencies": {
